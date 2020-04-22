@@ -3,6 +3,7 @@
 $sizeLimit = 1024000;
 $nbFilesInForm = 5;
 $errorsTrack = [];
+$authExtentions = ["image/jpg" ,"image/png" , "image/gif" ];
 
 
 // pour le formulaire plusieurs champs
@@ -10,6 +11,7 @@ if (!empty($_FILES['pictures'])) {
     $container = $_FILES['pictures'];
     $errors = $container["error"];
     $nbFiles = count($container);
+    var_dump($_FILES);
     foreach ($errors as $key => $error) {
         switch ($error) {
             case UPLOAD_ERR_OK :
@@ -17,21 +19,33 @@ if (!empty($_FILES['pictures'])) {
                 $tmp_name = $allFileTmpNames[$key];
                 $allFileSize = $_FILES["pictures"]["size"];
                 $size = basename($allFileSize[$key]);
+
+                // controle de la taille
                 if ($size > $sizeLimit) {
-                    $errorsTrack[] = "Le fichier " . $name . " depasse la taille limite et a été refusé par le controle de validation. Taille [ " . $size . "].<br>";
+                    $errorsTrack[] = "Le fichier [" . $name . "] depasse la taille limite et a été refusé par le controle de validation. Taille [ " . $size . "].<br>";
                     break;
                 }
+
+                // generation part name aleatoire , conservation  nom  initial volontaire + genkey
                 $allFileNames = $_FILES["pictures"]["name"];
                 $name = basename($allFileNames[$key]);
                 $fileInfo = new SplFileInfo($name);
                 $ext = pathinfo($name, PATHINFO_EXTENSION);
                 $aloneNaqme = pathinfo($name, PATHINFO_FILENAME);
                 $uniqIdName = uniqid($aloneNaqme, true) . "." . $ext;
+
+                // controle du  typê de fichier
+                $allTypes=  $_FILES["pictures"]["type"];
+                $ceType= $allTypes[$key];
+                if(!in_array($key,$authExtentions)){
+                    $errorsTrack[] = "Le fichier [" . $name . "] est pas d'un type MIME authaurisé.<br>";
+                }
+
                 move_uploaded_file($tmp_name, "uploads/$uniqIdName");
                 break;
 
             case UPLOAD_ERR_INI_SIZE :
-                $errorsTrack[] = "Le fichier " . $name . " depasse la taille limite et a été refusé par le serveur.<br>";
+                $errorsTrack[] = "Le fichier  [" . $name . "] depasse la taille limite et a été refusé par le serveur.<br>";
                 break;
         }
 
@@ -58,7 +72,7 @@ if(isset($_POST)){
 <form action="?multiple=true" method="post" enctype="multipart/form-data">
     <p>Images:<br>
         <?php for ($i = 0; $i < $nbFilesInForm; $i++) { ?>
-            <input type="file" accept="image/png, image/jpeg, image/gif" name="pictures[]"/><br>
+            <input type="file" name="pictures[]"/><br>
         <?php } ?>
         <input name="userfile" type="submit" value="Send"/>
     </p>
