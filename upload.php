@@ -1,33 +1,41 @@
 <?php
 
 $sizeLimit = 1024000;
-$nbFilesInForm = 5;
+$nbFilesInForm = 1;
 $errorsTrack = [];
-$authExtentions = ["image/jpg" ,"image/png" , "image/gif" ];
+$authExtentions = ["image/jpg", "image/jpeg", "image/png", "image/gif" ];
 
+// detection ,erreur somme de fichier trop gros dans le file multiples.
+if(!empty($_GET["multiple"])){
+    if(empty($_FILES)){
+        $errorsTrack[] = "Un probleme non pris en charge est survenue. <br> Généralement ce probleme est du a une taille de fichier additionnés trop  grosse. <br> Sur ce serveur la taille max pour la somme des fichiers est de 8 MB.";
+    }
+}
 
-// pour le formulaire plusieurs champs
+// traitement des files et detection erreur
+
 if (!empty($_FILES['pictures'])) {
     $container = $_FILES['pictures'];
     $errors = $container["error"];
     $nbFiles = count($container);
+
     foreach ($errors as $key => $error) {
-        switch ($error) {
-            case UPLOAD_ERR_OK :
-                $allFileTmpNames = $_FILES["pictures"]["tmp_name"];
-                $tmp_name = $allFileTmpNames[$key];
-                $allFileSize = $_FILES["pictures"]["size"];
-                $size = basename($allFileSize[$key]);
+
+        $allFileSize = $_FILES["pictures"]["size"];
+        $size = basename($allFileSize[$key]);
+        $allFileTmpNames = $_FILES["pictures"]["tmp_name"];
+        $tmp_name = $allFileTmpNames[$key];
+        $allFileNames = $_FILES["pictures"]["name"];
+        $name = basename($allFileNames[$key]);
+
+        if($error === 0) {
 
                 // controle de la taille
-                if ($size > $sizeLimit) {
-                    $errorsTrack[] = "Le fichier [" . $name . "] depasse la taille limite et a été refusé par le controle de validation. Taille [ " . $size . "].<br>";
-                    break;
+                if ($size >= $sizeLimit) {
+                    $errorsTrack[] = "Le fichier [" . $name . "] depasse la taille limite interne au  programme [ " . $sizeLimit .  "] et a été refusé . Taille [ " . $size . "].<br>";
                 }
 
                 // generation part name aleatoire , conservation  nom  initial volontaire + genkey
-                $allFileNames = $_FILES["pictures"]["name"];
-                $name = basename($allFileNames[$key]);
                 $fileInfo = new SplFileInfo($name);
                 $ext = pathinfo($name, PATHINFO_EXTENSION);
                 $aloneNaqme = pathinfo($name, PATHINFO_FILENAME);
@@ -36,17 +44,17 @@ if (!empty($_FILES['pictures'])) {
                 // controle du  typê de fichier
                 $allTypes=  $_FILES["pictures"]["type"];
                 $ceType= $allTypes[$key];
-                if(!in_array($key,$authExtentions)){
-                    $errorsTrack[] = "Le fichier [" . $name . "] est pas d'un type MIME authaurisé.<br>";
-                    break; // ajouter suite correctiun  odyssey GD
+                if(!in_array($ceType,$authExtentions)){
+                    $errorsTrack[] = "Le fichier [" . $name . "] est de type MIME [" . $ceType . "] . Ce type n'est authaurisé. <br>";
+                }else{
+                    move_uploaded_file($tmp_name, "uploads/$uniqIdName");
                 }
 
-                move_uploaded_file($tmp_name, "uploads/$uniqIdName");
-                break;
 
-            case UPLOAD_ERR_INI_SIZE :
-                $errorsTrack[] = "Le fichier  [" . $name . "] depasse la taille limite et a été refusé par le serveur.<br>";
-                break;
+        }
+
+        if($error === 1) {
+            $errorsTrack[] = "Le fichier [" . $name . "] depasse la taille limite du serveur PHP et a été refusé par le controle de validation.<br>";
         }
 
     }
@@ -83,9 +91,7 @@ function delete(string $filePath) {
 
 <form action="?multiple=true" method="post" enctype="multipart/form-data">
     <p>Images:<br>
-        <?php for ($i = 0; $i < $nbFilesInForm; $i++) { ?>
-            <input type="file" name="pictures[]"/><br>
-        <?php } ?>
+            <input multiple="multiple" type="file" name="pictures[]" accept="image/png, image/jpeg, image/gif"/><br>
         <input name="userfile" type="submit" value="Send"/>
     </p>
 </form>
