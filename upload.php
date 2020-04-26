@@ -11,7 +11,6 @@ if (!empty($_FILES['pictures'])) {
     $container = $_FILES['pictures'];
     $errors = $container["error"];
     $nbFiles = count($container);
-    var_dump($_FILES);
     foreach ($errors as $key => $error) {
         switch ($error) {
             case UPLOAD_ERR_OK :
@@ -39,6 +38,7 @@ if (!empty($_FILES['pictures'])) {
                 $ceType= $allTypes[$key];
                 if(!in_array($key,$authExtentions)){
                     $errorsTrack[] = "Le fichier [" . $name . "] est pas d'un type MIME authaurisé.<br>";
+                    break; // ajouter suite correctiun  odyssey GD
                 }
 
                 move_uploaded_file($tmp_name, "uploads/$uniqIdName");
@@ -52,20 +52,32 @@ if (!empty($_FILES['pictures'])) {
     }
 }
 
+// affichage des erreurs
 if (!empty($errorsTrack)) {
     for ($i = 0; $i < count($errorsTrack); $i++) {
         if (!empty($errorsTrack[$i])) echo "Erreur [" . $i . "] : " . (string)$errorsTrack[$i];
     }
 }
 
+// detection du  delete
 if(isset($_POST)){
-
     if(isset($_POST["delete"])){
-
         delete("uploads/" . $_POST["delete"]);
     }
 }
 
+
+// fonctions php
+function getListFiles()
+{
+    $it = new FilesystemIterator("uploads");
+    return $it;
+}
+function delete(string $filePath) {
+    if(file_exists($filePath)){
+        unlink($filePath);
+    }
+}
 ?>
 
 
@@ -86,7 +98,7 @@ foreach ($listFiles as $file) { ?>
         <p>Images:<br>
             <figure>
                 <img src="<?= "uploads/" . $file->getFilename() ?>"
-                     alt="<?= $file->getFilename() ?>">
+                     alt="<?= $file->getFilename() ?>" height="auto" width="100">
                 <figcaption><?= $file->getFilename() ?></figcaption>
             </figure>
             <input type="hidden" id="delete" name="delete" value="<?= $file->getFilename() ?>">
@@ -94,17 +106,3 @@ foreach ($listFiles as $file) { ?>
         </p>
     </form>
 <?php } ?>
-
-
-<?php
-function getListFiles()
-{
-    $it = new FilesystemIterator("uploads");
-    return $it;
-}
-function delete(string $filePath) {
-    if(file_exists($filePath)){
-        unlink($filePath);
-    }
-}
-?>
